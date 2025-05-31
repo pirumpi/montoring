@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 
-const PORT = 8080; // Choose an available port
+const PORT = process.env.PORT || 8080; // Use environment variable or fallback to 8080
 
 const wss = new WebSocket.Server({ port: PORT });
 
