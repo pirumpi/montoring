@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // --- Configuration ---
-const WS_SERVER_URL = 'ws://localhost:8080'; // Change to your server's IP/hostname if not local
+const WS_SERVER_URL = 'wss://montoring.onrender.com/'; // Use secure WebSocket protocol (wss)
 const RECONNECT_INTERVAL_MS = 2 * 1000; // Try to reconnect every 2 seconds
 const HEARTBEAT_INTERVAL_MS = 5 * 1000; // Send heartbeat every 5 seconds
 const LOG_FILE = path.join(__dirname, 'connection_websocket_log.txt');
@@ -78,9 +78,7 @@ function connectWebSocket() {
     console.log(`Attempting to connect to WebSocket server... (Attempt ${reconnectAttemptCount})`);
     appendToLog(`Attempting to connect to WebSocket server... (Attempt ${reconnectAttemptCount})`);
 
-    ws = new WebSocket(WS_SERVER_URL);
-
-    ws.onopen = () => {
+    ws = new WebSocket(WS_SERVER_URL);    ws.onopen = () => {
         if (!isConnected) {
             const disconnectedDurationMs = new Date() - lastConnectionTime;
             const disconnectedDurationSeconds = (disconnectedDurationMs / 1000).toFixed(2);
@@ -96,9 +94,24 @@ function connectWebSocket() {
         startHeartbeat(); // Start heartbeats once connected
     };
 
-    ws.onmessage = message => {
-        // If the server echoes back, it confirms bidirectional communication
-        // console.log(`Received heartbeat response: ${message.data}`);
+    // Handle WebSocket-level ping frames from server
+    ws.on('ping', () => {
+        // Automatically respond with pong (this is handled by the WebSocket library)
+        // But we can also send an application-level pong if needed
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send('pong');
+        }
+    });ws.onmessage = message => {
+        const messageStr = message.data.toString();
+        
+        // Handle pong response from server
+        if (messageStr === 'pong') {
+            // Server responded to our ping - connection is alive
+            return;
+        }
+        
+        // Handle any other messages if needed
+        // console.log(`Received message: ${messageStr}`);
     };
 
     ws.onclose = (event) => {
